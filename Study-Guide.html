@@ -129,6 +129,7 @@
       <span>⏱️ Test: Thursday</span>
       <span>🧠 ELI5 → Test-speak</span>
       <span>✅ Built from your 9 note pages</span>
+      <span>🤖 Ask-AI helper included</span>
     </div>
   </div>
 </header>
@@ -140,6 +141,7 @@
   Got a minute? Do the <span class="pill">✏️ Try it</span> boxes — tap the dashed line to reveal the answer.
   When you're ready for the real thing, open <a href="Practice-Test.html"><strong>Practice-Test.html</strong></a> (simulated test, graded, with explanations)
   and <a href="Flashcards.html"><strong>Flashcards.html</strong></a> (quick flip-card drills).
+  <strong>Got a question while reading?</strong> Hit the <strong>🤖 Ask AI</strong> button in the bottom-right corner — it answers using this guide. One-time setup: a free Google Gemini key (the panel walks you through it; it stays in your browser).
 </div>
 
 <section id="s1">
@@ -1060,5 +1062,347 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
 </footer>
 
 </div>
+<!-- <!-- ═══════════════ ASK-AI PANEL (bring your own Gemini key) ═══════════════ -->
+<style>
+  .qa-btn{position:fixed;right:18px;bottom:18px;z-index:70;background:var(--navy);color:#fff;border:none;border-radius:999px;
+    padding:13px 20px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 20px rgba(28,43,74,.35);
+    display:flex;gap:8px;align-items:center;transition:transform .15s}
+  .qa-btn:hover{transform:translateY(-2px)}
+  .qa-panel{position:fixed;right:18px;bottom:82px;z-index:70;width:min(410px,calc(100vw - 28px));height:min(600px,calc(100vh - 130px));
+    background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(28,43,74,.28);
+    display:none;flex-direction:column;overflow:hidden}
+  .qa-panel.open{display:flex}
+  .qa-head{display:flex;align-items:center;gap:7px;padding:11px 13px;border-bottom:1px solid var(--line);background:#fff;flex:0 0 auto}
+  .qa-head b{color:var(--navy);font-size:14.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qa-ico{border:1px solid var(--line);background:#fff;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:14px;flex:0 0 auto}
+  .qa-ico:hover{border-color:var(--navy)}
+  .qa-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#faf8f2}
+  .qa-bub{max-width:88%;padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.55;overflow-wrap:anywhere}
+  .qa-bub p{margin:0 0 7px}
+  .qa-bub p:last-child{margin-bottom:0}
+  .qa-bub ul{margin:4px 0;padding-left:20px}
+  .qa-user{align-self:flex-end;background:var(--navy);color:#fff;border-bottom-right-radius:5px}
+  .qa-ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px}
+  .qa-ai strong{color:var(--navy)}
+  .qa-ai code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f1ede3;border:1px solid var(--line);border-radius:5px;padding:0 4px;font-size:13px}
+  .qa-err{align-self:stretch;max-width:100%;background:#fdeef4;border:1px solid #ecc3d6;color:#9c3363;font-size:13.5px}
+  .qa-setupbox{align-self:stretch;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:14px}
+  .qa-setupbox h4{margin:0 0 8px;color:var(--navy);font-size:15px}
+  .qa-setupbox p{margin:7px 0}
+  .qa-setupbox a{color:var(--teal);font-weight:700}
+  .qa-keyrow{display:flex;gap:8px;margin-top:9px}
+  .qa-keyin{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:8px 11px;font:inherit;font-size:14px;min-width:0}
+  .qa-keyin:focus{outline:2px solid var(--navy);border-color:var(--navy)}
+  .qa-save{border:none;background:var(--orange);color:#fff;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;white-space:nowrap}
+  .qa-save:disabled{opacity:.55;cursor:default}
+  .qa-status{margin-top:8px;font-size:13px;min-height:18px}
+  .qa-status.ok{color:var(--green)}
+  .qa-status.bad{color:var(--red)}
+  .qa-think{color:var(--ink-soft)}
+  .qa-dots{display:inline-flex;gap:4px;margin-right:6px;vertical-align:middle}
+  .qa-dots i{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;animation:qab 1.1s infinite}
+  .qa-dots i:nth-child(2){animation-delay:.18s}
+  .qa-dots i:nth-child(3){animation-delay:.36s}
+  @keyframes qab{0%,70%,100%{transform:translateY(0);opacity:.45}35%{transform:translateY(-4px);opacity:1}}
+  .qa-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 13px 9px;flex:0 0 auto;background:#faf8f2}
+  .qa-chips:empty{display:none}
+  .qa-chip{border:1px dashed var(--teal);color:var(--teal);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .qa-chip:hover{background:#f0faf8}
+  .qa-form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:#fff;flex:0 0 auto}
+  .qa-input{flex:1;resize:none;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;font:inherit;font-size:14.5px;max-height:110px;min-height:40px}
+  .qa-input:focus{outline:2px solid var(--navy);border-color:var(--navy)}
+  .qa-send{border:none;background:var(--orange);color:#fff;border-radius:12px;padding:0 16px;font-weight:800;cursor:pointer;font-size:14.5px}
+  .qa-send:disabled{opacity:.5;cursor:default}
+  @media (max-width:600px){ .qa-panel{right:8px;left:8px;bottom:76px;width:auto;height:calc(100vh - 150px)} }
+  @media print{ .qa-btn,.qa-panel{display:none !important} }
+</style>
+<button class="qa-btn" id="qaBtn" type="button">🤖 Ask AI</button>
+<div class="qa-panel" id="qaPanel" role="dialog" aria-label="Ask AI about this guide">
+  <div class="qa-head">
+    <b>🤖 Ask about this guide</b>
+    <button class="qa-ico" id="qaKeyBtn" type="button" title="Gemini API key settings">🔑</button>
+    <button class="qa-ico" id="qaClearBtn" type="button" title="Clear chat">🧹</button>
+    <button class="qa-ico" id="qaCloseBtn" type="button" title="Close">✕</button>
+  </div>
+  <div class="qa-msgs" id="qaMsgs"></div>
+  <div class="qa-chips" id="qaChips"></div>
+  <form class="qa-form" id="qaForm" autocomplete="off">
+    <textarea class="qa-input" id="qaInput" rows="1" placeholder="Ask anything from this chapter…"></textarea>
+    <button class="qa-send" id="qaSend" type="submit">Send</button>
+  </form>
+</div>
+<script>
+(function () {
+  "use strict";
+  var KEY_STORE = "gch2_gemini_key";
+  var MODEL_STORE = "gch2_gemini_model";
+  var MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-2.5-flash"];
+  var API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+  var panel = document.getElementById("qaPanel");
+  var msgs = document.getElementById("qaMsgs");
+  var chipsEl = document.getElementById("qaChips");
+  var form = document.getElementById("qaForm");
+  var input = document.getElementById("qaInput");
+  var sendBtn = document.getElementById("qaSend");
+
+  var history = [];      // [{role:"user"|"model", parts:[{text}]}]
+  var busy = false;
+  var ctxCache = null;
+
+  /* ---------- storage ---------- */
+  function getKey() { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } }
+  function setKey(k) { try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch (e) {} }
+  function getModel() { try { return localStorage.getItem(MODEL_STORE) || ""; } catch (e) { return ""; } }
+  function setModel(m) { try { localStorage.setItem(MODEL_STORE, m); } catch (e) {} }
+
+  /* ---------- guide context ---------- */
+  function guideText() {
+    if (ctxCache !== null) return ctxCache;
+    var parts = [];
+    var secs = document.querySelectorAll("section");
+    for (var i = 0; i < secs.length; i++) {
+      var t = "innerText" in secs[i] && typeof secs[i].innerText === "string" ? secs[i].innerText : secs[i].textContent;
+      t = String(t || "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      if (t) parts.push(t);
+    }
+    var all = parts.join("\n\n— — —\n\n");
+    if (all.length > 60000) all = all.slice(0, 60000) + "\n[context truncated]";
+    ctxCache = all;
+    return all;
+  }
+  function systemPrompt() {
+    return "You are a friendly, patient geometry tutor embedded inside a Chapter 2 study guide (\\\"Reasoning & Proofs\\\") that a student uses to prepare for a test. " +
+      "Answer questions using the study guide content below whenever possible; if a topic is not covered there, say so briefly and still help using standard geometry. " +
+      "Keep answers short, clear and encouraging, in the guide's own style (simple analogies, then the exact 'test-speak' wording). " +
+      "You may quiz the student when asked - ask ONE question at a time and check their answer. " +
+      "Write math in plain text with Unicode symbols (∠, ≅, →, ↔, ≠, ², ½, °, ⇒, ¬) - never LaTeX. Bullets with '- ' are fine. " +
+      "=== STUDY GUIDE CONTENT ===\n" + guideText();
+  }
+
+  /* ---------- tiny markdown renderer (safe: escape first) ---------- */
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function md(text) {
+    var e = esc(text || "");
+    e = e.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    e = e.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+    var lines = e.split("\n"), out = [], buf = [], list = null;
+    function flushPara() { if (buf.length) { out.push("<p>" + buf.join("<br>") + "</p>"); buf = []; } }
+    function flushList() { if (list) { out.push("<ul>" + list.join("") + "</ul>"); list = null; } }
+    for (var i = 0; i < lines.length; i++) {
+      var t = lines[i].trim();
+      if (/^[-•*]\s+/.test(t)) { flushPara(); list = list || []; list.push("<li>" + t.replace(/^[-•*]\s+/, "") + "</li>"); }
+      else if (/^\d+[.)]\s+/.test(t)) { flushPara(); list = list || []; list.push("<li>" + t.replace(/^\d+[.)]\s+/, "") + "</li>"); }
+      else if (t === "") { flushPara(); flushList(); }
+      else { flushList(); buf.push(t); }
+    }
+    flushPara(); flushList();
+    return out.join("");
+  }
+
+  /* ---------- status helpers ---------- */
+  function bubble(cls, html) {
+    var d = document.createElement("div");
+    d.className = "qa-bub " + cls;
+    d.innerHTML = html;
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+    return d;
+  }
+  function clearMsgs() { msgs.innerHTML = ""; chipsEl.innerHTML = ""; }
+
+  function showChips() {
+    var qs = ["Explain the contrapositive like I'm 5", "Quiz me on this chapter (one question at a time)", "How do I write a two-column proof?"];
+    chipsEl.innerHTML = "";
+    qs.forEach(function (q) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "qa-chip"; b.textContent = q;
+      b.addEventListener("click", function () { send(q); });
+      chipsEl.appendChild(b);
+    });
+  }
+
+  function renderChat() {
+    clearMsgs();
+    if (!history.length) {
+      bubble("qa-ai", "Hey! I'm your Chapter 2 tutor. I can explain anything from this guide, quiz you, or check your proof steps. Try one of these, or type your own question 👇");
+      showChips();
+    } else {
+      history.forEach(function (m) {
+        bubble(m.role === "user" ? "qa-user" : "qa-ai", m.role === "user" ? esc(m.parts[0].text) : md(m.parts[0].text));
+      });
+    }
+  }
+
+  /* ---------- setup view (key entry) ---------- */
+  function renderSetup(pre) {
+    clearMsgs();
+    var box = document.createElement("div");
+    box.className = "qa-setupbox";
+    box.innerHTML =
+      "<h4>🔑 Connect Gemini (bring your own key)</h4>" +
+      "<p>" + (pre ? esc(pre) + "<br>" : "") +
+      "This guide can answer your questions using Google's Gemini. It needs a free API key from <b>Google AI Studio</b>:</p>" +
+      "<p>1. Open <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a> and create a key (free tier is fine).<br>" +
+      "2. Paste it below and hit Save. It's stored <b>only in this browser</b> and is sent <b>only to Google</b> when you ask a question.<br>" +
+      "3. If you share this page, everyone uses their own key — the page itself has no key.</p>" +
+      "<div class=\"qa-keyrow\"><input class=\"qa-keyin\" id=\"qaKeyIn\" type=\"password\" placeholder=\"AIza…\" spellcheck=\"false\" autocomplete=\"off\"><button class=\"qa-save\" id=\"qaKeySave\" type=\"button\">Save key</button></div>" +
+      "<div class=\"qa-status\" id=\"qaKeyStatus\"></div>";
+    msgs.appendChild(box);
+    var kin = document.getElementById("qaKeyIn");
+    var ks = document.getElementById("qaKeyStatus");
+    var kb = document.getElementById("qaKeySave");
+    if (getKey()) ks.innerHTML = "A key is already saved on this device — paste a new one to replace it, or <a href=\"#\" id=\"qaKeyClear\" style=\"color:#c94f7c\">remove it</a>.";
+    var clr = document.getElementById("qaKeyClear");
+    if (clr) clr.addEventListener("click", function (ev) {
+      ev.preventDefault(); setKey(""); ks.className = "qa-status"; ks.textContent = "Key removed. Paste a new one to reconnect.";
+    });
+    function fail(msg) { ks.className = "qa-status bad"; ks.innerHTML = msg; }
+    function trySave(force) {
+      var k = kin.value.trim();
+      if (k.length < 10) { fail("That looks too short to be a key — copy the whole key from AI Studio."); return; }
+      kb.disabled = true; ks.className = "qa-status"; ks.textContent = "Testing the key with Google…";
+      var prevKey = getKey();
+      setKey(k);
+      callGemini([{ role: "user", parts: [{ text: "Reply with exactly: OK" }] }], "You are a helpful assistant.")
+        .then(function () {
+          kb.disabled = false;
+          ks.className = "qa-status ok";
+          ks.textContent = "✅ Key works! You can ask questions now.";
+          setTimeout(renderChat, 700);
+        })
+        .catch(function (err) {
+          kb.disabled = false;
+          if (err && err.network) {
+            ks.className = "qa-status bad";
+            ks.innerHTML = "Couldn't reach Google to test the key (internet ok?). <a href=\"#\" id=\"qaForce\" style=\"color:#2f8f83\">Save it anyway</a>";
+            var f = document.getElementById("qaForce");
+            if (f) f.addEventListener("click", function (ev2) { ev2.preventDefault(); ks.className = "qa-status ok"; ks.textContent = "Saved. If questions fail later, check the key with 🔑."; setTimeout(renderChat, 700); });
+          } else {
+            setKey(prevKey);
+            fail(err && err.allModelsFailed
+              ? "The key was rejected by every Gemini model name we know. Make sure it's a key from <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>."
+              : friendlyError((err && err.status) || 0, err && err.body));
+          }
+        });
+    }
+    kb.addEventListener("click", function () { trySave(); });
+    kin.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); trySave(); } });
+  }
+
+  /* ---------- Gemini call ---------- */
+  function safeJson(r) { return r.json().catch(function () { return {}; }); }
+  function friendlyError(status, body) {
+    var msg = "";
+    try { msg = (body && body.error && body.error.message) || ""; } catch (e) {}
+    if (status === 400 || status === 401 || status === 403) {
+      if (/api key not valid|api_key_invalid|invalid/i.test(msg)) {
+        return "That API key doesn't work — double-check it (or make a new one at <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>), then tap 🔑 to update it.";
+      }
+      return "Google rejected the request: " + esc(msg || ("HTTP " + status)) + " — tap 🔑 to update your key.";
+    }
+    if (status === 429) return "Rate limit hit for this key. Wait a minute (free-tier limits are per-minute and per-day) and try again.";
+    if (status >= 500) return "Google's servers hiccupped (HTTP " + status + ") — try again in a few seconds.";
+    return "Something went wrong: " + esc(msg || ("HTTP " + status));
+  }
+
+  function callGemini(contents, system) {
+    var key = getKey();
+    if (!key) { var e0 = new Error("no-key"); e0.needKey = true; return Promise.reject(e0); }
+    var tried = (getModel() ? [getModel()] : []).concat(MODELS.filter(function (m) { return m !== getModel(); }));
+    var last = null;
+    function attempt(i) {
+      if (i >= tried.length) {
+        var e = new Error("all-models-failed"); e.allModelsFailed = true; e.status = last ? last.status : 404; e.body = last ? last.body : {};
+        return Promise.reject(e);
+      }
+      var m = tried[i];
+      return fetch(API_BASE + m + ":generateContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify({
+          contents: contents,
+          systemInstruction: { parts: [{ text: system }] },
+          generationConfig: { temperature: 0.45, maxOutputTokens: 2048 }
+        })
+      }).then(function (r) {
+        return safeJson(r).then(function (body) {
+          if (r.status === 404) { last = { status: 404, body: body }; return attempt(i + 1); } // wrong model name -> next
+          if (!r.ok) { var e = new Error("http-" + r.status); e.status = r.status; e.body = body; throw e; }
+          setModel(m);
+          return body;
+        });
+      }, function () { var e = new Error("network"); e.network = true; throw e; });
+    }
+    return attempt(0);
+  }
+
+  function extractAnswer(body) {
+    try {
+      var c = body && body.candidates && body.candidates[0];
+      if (c && c.content && c.content.parts) {
+        var t = c.content.parts.map(function (p) { return p.text || ""; }).join("\n").trim();
+        if (t) return t;
+      }
+    } catch (e) {}
+    return "";
+  }
+
+  /* ---------- send flow ---------- */
+  function send(text) {
+    if (busy) return;
+    text = String(text || "").trim();
+    if (!text) return;
+    if (!getKey()) { renderSetup("Save your Gemini API key first — then I can answer questions 👇"); return; }
+    bubble("qa-user", esc(text));
+    input.value = ""; fitInput();
+    var think = bubble("qa-ai qa-think", '<span class="qa-dots"><i></i><i></i><i></i></span> Thinking…');
+    busy = true; sendBtn.disabled = true;
+    var contents = history.slice(-20).concat([{ role: "user", parts: [{ text: text }] }]);
+    callGemini(contents, systemPrompt()).then(function (body) {
+      var answer = extractAnswer(body);
+      if (!answer) {
+        var why = "";
+        try { why = (body.promptFeedback && body.promptFeedback.blockReason) || ""; } catch (e) {}
+        answer = "*(No answer came back" + (why ? " — blocked: " + why : "") + ". Try rephrasing the question.)*";
+      }
+      think.classList.remove("qa-think");
+      think.innerHTML = md(answer);
+      history.push({ role: "user", parts: [{ text: text }] });
+      history.push({ role: "model", parts: [{ text: answer }] });
+      if (history.length > 24) history = history.slice(history.length - 24);
+    }).catch(function (err) {
+      think.remove();
+      if (err && err.needKey) renderSetup("Save your Gemini API key first — then I can answer questions 👇");
+      else if (err && err.network) bubble("qa-err", "Couldn't reach Google — check your internet and try again.");
+      else if (err && err.allModelsFailed) bubble("qa-err", "All Gemini model names were rejected — tap 🔑 and make sure the key is from <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>.");
+      else bubble("qa-err", friendlyError((err && err.status) || 0, err && err.body));
+    }).then(function () {
+      busy = false; sendBtn.disabled = false;
+    });
+  }
+
+  /* ---------- composer ---------- */
+  function fitInput() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 110) + "px"; }
+  input.addEventListener("input", fitInput);
+  input.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); send(input.value); }
+  });
+  form.addEventListener("submit", function (ev) { ev.preventDefault(); send(input.value); });
+
+  /* ---------- panel wiring ---------- */
+  function openPanel() { panel.classList.add("open"); }
+  function closePanel() { panel.classList.remove("open"); }
+  document.getElementById("qaBtn").addEventListener("click", function () {
+    if (panel.classList.contains("open")) { closePanel(); return; }
+    openPanel();
+    if (getKey()) { renderChat(); input.focus(); } else { renderSetup(""); }
+  });
+  document.getElementById("qaCloseBtn").addEventListener("click", closePanel);
+  document.getElementById("qaKeyBtn").addEventListener("click", function () { renderSetup(""); });
+  document.getElementById("qaClearBtn").addEventListener("click", function () { history = []; renderChat(); });
+})();
+</script>
+ -->
 </body>
 </html>
