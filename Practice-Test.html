@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometry Ch. 2 — Simulated Practice Test</title>
+<style>
+  :root{
+    --paper:#f7f3ea; --card:#fffdf8; --ink:#23272e; --ink-soft:#5b6270;
+    --navy:#1c2b4a; --orange:#e07b39; --teal:#2f8f83; --pink:#c94f7c;
+    --green:#2e7d4f; --red:#c0392b; --line:#e6dfd0; --chip:#f0e9da;
+    --shadow:0 1px 2px rgba(35,39,46,.05),0 4px 14px rgba(35,39,46,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background-image:radial-gradient(rgba(28,43,74,.05) 1px, transparent 1.2px);background-size:26px 26px;}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 18px 80px}
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .topbar h1{font-size:22px;margin:0;color:var(--navy);letter-spacing:-.3px;flex:1 1 260px}
+  .tbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;font-weight:700;font-size:13.5px;color:var(--navy);cursor:pointer}
+  .tbtn:hover{border-color:var(--navy)}
+  .tbtn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .tbtn.grade{background:var(--orange);border-color:var(--orange);color:#fff}
+  .tbtn.grade:hover{filter:brightness(1.05)}
+  .timer{font-family:ui-monospace,Consolas,Menlo,monospace;font-weight:800;font-size:17px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 12px;color:var(--navy);min-width:92px;text-align:center}
+  .timer.low{color:var(--red);border-color:#e6b0a8}
+  /* progress */
+  .progwrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px}
+  .progbar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;margin-bottom:9px}
+  .progbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--navy));border-radius:99px;transition:width .25s}
+  .dots{display:flex;flex-wrap:wrap;gap:5px}
+  .dot{width:27px;height:27px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .dot:hover{border-color:var(--navy);color:var(--navy)}
+  .dot.cur{outline:2px solid var(--navy);outline-offset:1px;color:var(--navy)}
+  .dot.ans{background:#eef2fa;border-color:#c6d3ee;color:#3a5da8}
+  .dot.good{background:#e8f5ec;border-color:#b6dcc4;color:var(--green)}
+  .dot.bad{background:#fdecea;border-color:#eec3bc;color:var(--red)}
+  /* question card */
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+  .qmeta{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .partchip{background:var(--navy);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;border-radius:99px;padding:3px 11px}
+  .qnum{color:var(--ink-soft);font-size:13.5px;font-weight:700}
+  .typed{background:var(--chip);color:var(--navy);font-size:11.5px;font-weight:800;letter-spacing:.6px;border-radius:99px;padding:3px 10px;text-transform:uppercase}
+  .qtext{font-size:18px;font-weight:600;margin:6px 0 16px;line-height:1.5}
+  .qtext .mono{font-family:ui-monospace,Consolas,Menlo,monospace}
+  .choices{display:grid;gap:9px}
+  .choice{display:flex;gap:11px;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:#fff;
+    border-radius:12px;padding:11px 14px;font:inherit;font-size:15.5px;cursor:pointer;transition:border-color .15s, background .15s}
+  .choice:hover{border-color:#b9c4dd}
+  .choice .ltr{flex:0 0 26px;height:26px;border-radius:8px;background:var(--chip);color:var(--navy);font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:13.5px}
+  .choice.sel{border-color:var(--navy);background:#f6f8fd}
+  .choice.sel .ltr{background:var(--navy);color:#fff}
+  .choice.correct{border-color:var(--green);background:#eef8f1}
+  .choice.correct .ltr{background:var(--green);color:#fff}
+  .choice.wrong{border-color:var(--red);background:#fdf0ee}
+  .choice.wrong .ltr{background:var(--red);color:#fff}
+  .choice[disabled]{cursor:default;opacity:.96}
+  textarea{width:100%;min-height:110px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;background:#fff;resize:vertical}
+  textarea:focus{outline:2px solid var(--navy);outline-offset:0;border-color:var(--navy)}
+  .wbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .wbtn{border:1.5px dashed var(--teal);background:#fff;color:var(--teal);font-weight:700;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:14px}
+  .wbtn:hover{background:#f0faf8}
+  .selfgrade{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sg{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px}
+  .sg.yes.yes-on{border-color:var(--green);background:#e8f5ec;color:var(--green)}
+  .sg.no.no-on{border-color:var(--red);background:#fdecea;color:var(--red)}
+  .model{display:none;margin-top:12px;background:#f6f8fd;border:1px solid #c6d3ee;border-radius:12px;padding:12px 16px}
+  .model.show{display:block}
+  .model h4{margin:0 0 6px;color:#3a5da8;font-size:13px;letter-spacing:.7px;text-transform:uppercase}
+  .explain{display:none;margin-top:14px;border-left:4px solid var(--teal);background:#f2faf8;border-radius:0 12px 12px 0;padding:12px 16px}
+  .explain.show{display:block}
+  .explain h4{margin:0 0 5px;color:var(--teal);font-size:13px;letter-spacing:.7px;text-transform:uppercase}
+  /* nav */
+  .navrow{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
+  .navbtn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 18px;font-weight:800;color:var(--navy);cursor:pointer;font-size:15px}
+  .navbtn:hover{border-color:var(--navy)}
+  .navbtn:disabled{opacity:.4;cursor:default}
+  .navbtn.next{background:var(--navy);color:#fff;border-color:var(--navy)}
+  /* banner */
+  .banner{display:none;margin-bottom:14px;background:#fdecea;border:1px solid #eec3bc;color:var(--red);
+    border-radius:12px;padding:10px 16px;font-weight:700}
+  .banner.show{display:block}
+  /* results */
+  .results{display:none}
+  .results.show{display:block}
+  .scorehero{background:linear-gradient(180deg,#20335c,#1c2b4a);color:#f4efe4;border-radius:18px;padding:26px 26px;text-align:center;box-shadow:var(--shadow)}
+  .scorehero .pct{font-size:52px;font-weight:900;letter-spacing:-1px;margin:4px 0}
+  .scorehero .sub{color:#cfc7b4;font-size:15px}
+  .scorehero .badge{display:inline-block;margin-top:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+    border-radius:999px;padding:5px 14px;font-weight:700;font-size:14px}
+  table.break{border-collapse:collapse;width:100%;margin:16px 0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table.break th{background:var(--navy);color:#fff;text-align:left;padding:8px 12px;font-size:13.5px}
+  table.break td{padding:8px 12px;border-top:1px solid var(--line);font-size:14.5px}
+  tr:nth-child(even) td{background:#faf8f2}
+  .miss{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+  .miss .mq{font-weight:700;margin-bottom:6px}
+  .miss .mma{font-size:14.5px;color:var(--ink-soft)}
+  .miss .mme{border-left:3px solid var(--teal);padding-left:12px;margin-top:8px;font-size:14.5px}
+  .rbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .small{font-size:13px;color:var(--ink-soft)}
+  .note{background:#f4f1e9;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;margin:12px 0}
+  @media print{.topbar .tbtn,.progwrap,.navrow{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <h1>📝 Chapter 2 Simulated Test <span class="small">— Reasoning &amp; Proofs</span></h1>
+  <button class="tbtn" id="modeBtn" title="Toggle study/exam behavior">🧠 Study mode: ON</button>
+  <span class="timer" id="timer">45:00</span>
+  <button class="tbtn" id="timerBtn">⏱ Start timer</button>
+  <button class="tbtn grade" id="gradeBtn">✅ Grade my test</button>
+</div>
+
+<div class="note" id="introNote">
+  <strong>How this works:</strong> 39 questions across 6 parts, like a real chapter test.
+  In <strong>Study mode</strong> (default) you get instant feedback + an explanation after each answer — perfect for practice.
+  Switch to <strong>Exam mode</strong> to hide feedback until you press <em>Grade my test</em> (realistic run-through).
+  Written answers are self-graded against a model answer. Your suggested time: <strong>45 minutes</strong>. Good luck! 🚀
+</div>
+
+<div class="banner" id="timeBanner">⏰ Time's up! Wrap up and hit “Grade my test” to see your score.</div>
+
+<div class="progwrap" id="progwrap">
+  <div class="progbar"><i id="progfill"></i></div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="qcard" id="qcard">
+  <div class="qmeta">
+    <span class="partchip" id="partChip">PART A</span>
+    <span class="qnum" id="qnum">Question 1 of 39</span>
+    <span class="typed" id="typeChip">multiple choice</span>
+  </div>
+  <div class="qtext" id="qtext">…</div>
+  <div class="choices" id="choices"></div>
+  <div id="writtenBox" style="display:none">
+    <textarea id="wtext" placeholder="Type your answer here (write it out like you would on the test)…"></textarea>
+    <div class="wbtns"><button class="wbtn" id="revealModel">👀 Reveal model answer</button></div>
+    <div class="model" id="modelBox"><h4>Model answer</h4><div id="modelText"></div></div>
+    <div class="selfgrade" id="selfGrade" style="display:none">
+      <span class="small" style="align-self:center">Grade yourself honestly:</span>
+      <button class="sg yes" id="sgYes">✓ I got it right</button>
+      <button class="sg no" id="sgNo">✗ I missed it</button>
+    </div>
+  </div>
+  <div class="explain" id="explain"><h4>Why / explanation</h4><div id="explainText"></div></div>
+</div>
+
+<div class="navrow">
+  <button class="navbtn" id="prevBtn">← Previous</button>
+  <button class="navbtn next" id="nextBtn">Next →</button>
+</div>
+
+<div class="results" id="results"></div>
+
+</div>
+<script>
+"use strict";
+
+/* ================= QUESTION BANK ================= */
+const BANK = [
+/* ---------- PART A — Warm-up: vocab & truth (8) ---------- */
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'In the statement <em>"If you finish your homework, then you can play games,"</em> what is the <strong>hypothesis</strong>?',
+ c:["You can play games","You finish your homework","You cannot play games","If you finish your homework"], a:1,
+ e:'The hypothesis is the IF part: "you finish your homework." The conclusion (THEN part) is "you can play games."'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'What is the <strong>conclusion</strong> of <em>"If a number is divisible by 10, then it is divisible by 5"</em>?',
+ c:["A number is divisible by 10","It is divisible by 5","It is divisible by 10","The number is 10"], a:1,
+ e:'The conclusion is the THEN part: "it is divisible by 5." (The hypothesis — divisible by 10 — stays on the IF side.)'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'Which is the correct If→Then rewrite of <em>"I can\u2019t sleep if I\u2019m not tired"</em>?',
+ c:["If I can\u2019t sleep, then I\u2019m not tired","If I\u2019m not tired, then I can\u2019t sleep","If I\u2019m tired, then I can sleep","If I sleep, then I\u2019m tired"], a:1,
+ e:'The "if" is hiding in the middle — bring it to the front: If I\u2019m not tired, THEN I can\u2019t sleep. (Hypothesis: I\u2019m not tired.)'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'In <em>"x = 5 only if x² = 25,"</em> the hypothesis is <strong>x² = 25</strong>.',
+ c:["True","False"], a:1,
+ e:'TRAP! After "only if" comes the CONCLUSION. "p only if q" means p → q, so the hypothesis is x = 5 and the conclusion is x² = 25.'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'Which of these is another way of writing <strong>"If p, then q"</strong>?',
+ c:["p if q","p only if q","q only if p","If q, then p"], a:1,
+ e:'"p only if q" says the same promise. Sneaky: "p if q" actually means "if q then p" — that\u2019s the CONVERSE, not the original!'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'A statement and its converse <strong>always</strong> have the same truth value.',
+ c:["True","False"], a:1,
+ e:'Not always! "If x = 5 then x² = 25" is true, but its converse "If x² = 25 then x = 5" is false (x = −5). Only the contrapositive always shares the original\u2019s truth.'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'Which is the <strong>negation</strong> of "I am happy."?',
+ c:["I am overjoyed","I am not happy","I am sad","I am never happy"], a:1,
+ e:'Negation = the exact opposite, just add "not": "I am not happy." "Overjoyed" or "sad" add extra meaning — not exact opposites.'},
+
+{p:"A", partName:"Warm-up: vocab & truth", t:"mc",
+ q:'Which pair of statements <strong>always</strong> shares the same truth value?',
+ c:["Conditional and converse","Conditional and inverse","Conditional and contrapositive","Inverse and contrapositive"], a:2,
+ e:'The conditional and its contrapositive are truth-buddies (and so are the converse and inverse). That\u2019s the pattern from your notes!'},
+
+/* ---------- PART B — The version-switcher (8) ---------- */
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'Statement: <em>"If it rains, then the field is wet."</em> Write the <strong>converse</strong>.',
+ c:["If the field is wet, then it rains","If it does not rain, then the field is not wet","If the field is not wet, then it does not rain","If it rains, then the field is dry"], a:0,
+ e:'Converse = SWAP the halves: "If the field is wet, then it rains."'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'Statement: <em>"If it rains, then the field is wet."</em> Write the <strong>inverse</strong>.',
+ c:["If the field is wet, then it rains","If it does not rain, then the field is not wet","If the field is not wet, then it does not rain","If it rains, then the field is wet"], a:1,
+ e:'Inverse = "not" on BOTH halves (no swap): "If it does NOT rain, then the field is NOT wet."'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'Statement: <em>"If it rains, then the field is wet."</em> Write the <strong>contrapositive</strong>.',
+ c:["If the field is not wet, then it does not rain","If it does not rain, then the field is not wet","If the field is wet, then it rains","If it does not rain, then the field is wet"], a:0,
+ e:'Contrapositive = SWAP + "not" both: "If the field is NOT wet, then it does NOT rain."'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"w",
+ q:'Given: <em>"If a figure is a square, then it has four equal sides."</em> Write the <strong>contrapositive</strong>.',
+ model:'"If a figure does not have four equal sides, then it is not a square."<br>Swap AND negate both halves. (Bonus: this one\u2019s true in both directions — the converse "If it has four equal sides, then it is a square" is false, though: a rhombus! So no biconditional here.)'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'<em>"If you are a math teacher, then you assign hours of homework."</em> Which is the <strong>inverse</strong>?',
+ c:["If you assign hours of homework, then you are a math teacher","If you are not a math teacher, then you do not assign hours of homework","If you do not assign hours of homework, then you are not a math teacher","If you are a math teacher, then you assign no homework"], a:1,
+ e:'Inverse = not both, no swap. Watch it: choice c is the CONTRAPOSITIVE (swap + not both) — the classic mix-up!'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'<em>"If you are a math teacher, then you assign hours of homework."</em> Which is the <strong>contrapositive</strong>?',
+ c:["If you are not a math teacher, then you do not assign hours of homework","If you do not assign hours of homework, then you are not a math teacher","If you assign hours of homework, then you are a math teacher","If you are a math teacher, then you do not assign hours of homework"], a:1,
+ e:'Contrapositive = SWAP + not both: "If you do NOT assign hours of homework, then you are NOT a math teacher."'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'Your notes\u2019 example: <em>"If it is not raining, then I am happy."</em> Which is its <strong>inverse</strong>?',
+ c:["If I am happy, then it is not raining","If it is raining, then I am not happy","If I am not happy, then it is raining","If I am not happy, then it is not raining"], a:1,
+ e:'Inverse = not both, no swap. Careful: negating "not raining" gives "raining" (two nots cancel!). Choice c is the contrapositive of this statement, not the inverse.'},
+
+{p:"B", partName:"The version-switcher (converse / inverse / contrapositive)", t:"mc",
+ q:'The contrapositive of <em>"If x = 3, then x² = 9"</em> is <em>"If x² ≠ 9, then x ≠ 3."</em>',
+ c:["True","False"], a:0,
+ e:'Correct! Swap + negate both: "x = 3" negates to "x ≠ 3"; "x² = 9" negates to "x² ≠ 9"; swapping gives "If x² ≠ 9, then x ≠ 3."'},
+
+/* ---------- PART C — Biconditionals & counterexamples (6) ---------- */
+{p:"C", partName:"Biconditionals & counterexamples", t:"mc",
+ q:'A statement can be written as a <strong>biconditional</strong> ("if and only if") only when…',
+ c:["The statement itself is true","The converse is true","BOTH the statement and its converse are true","Its contrapositive is false"], a:2,
+ e:'Both directions must work — that\u2019s what makes it a two-way door: "If converse AND conditional statement are true → biconditional" (your notes\u2019 exact rule).'},
+
+{p:"C", partName:"Biconditionals & counterexamples", t:"mc",
+ q:'<em>"A number is even if and only if it is divisible by 2."</em> Why is this biconditional valid?',
+ c:["Every even number is divisible by 2, AND every number divisible by 2 is even","Because even numbers are always 2","Because division is reversible","Because it sounds true"], a:0,
+ e:'Check both directions: even → divisible by 2 ✓ and divisible by 2 → even ✓. Both true → biconditional allowed.'},
+
+{p:"C", partName:"Biconditionals & counterexamples", t:"mc",
+ q:'Which is a <strong>counterexample</strong> to "If x² = 36, then x = 6"?',
+ c:["x = 36","x = 6","x = −6","x = 0"], a:2,
+ e:'(−6)² = 36 ✓ (hypothesis true) but −6 ≠ 6 (conclusion false) → promise broken. One counterexample kills the statement.'},
+
+{p:"C", partName:"Biconditionals & counterexamples", t:"mc",
+ q:'<em>"If AB ≅ BC, then B is the midpoint of AC."</em> Which situation is a counterexample?',
+ c:["A, B, C collinear with B between A and C, and AB = BC","AB ≅ BC, but B is NOT on segment AC (like your triangle figure)","AB and BC have different lengths and B is on AC","B is the midpoint of AC"], a:1,
+ e:'A midpoint must lie ON the segment. If B sits off the line (your triangle picture), AB can equal BC without B being the midpoint. That was exactly the class counterexample!'},
+
+{p:"C", partName:"Biconditionals & counterexamples", t:"mc",
+ q:'"I checked ten examples and they all worked, so the statement is proven true."',
+ c:["True — ten examples is a proof","False — examples never prove an \u201calways\u201d statement; only a proof does. And ONE counterexample disproves it."], a:1,
+ e:'Right: examples build intuition; proofs build certainty. One black swan 🦢 beats a thousand white ones.'},
+
+{p:"C", partName:"Biconditionals & counterexamples", t:"w",
+ q:'"If three points lie on the same line, then they are collinear." Write the <strong>converse</strong>, then say whether the two together form a <strong>biconditional</strong>.',
+ model:'Converse: "If three points are collinear, then they lie on the same line."<br>Both directions are true → YES, biconditional: <em>"Three points are collinear if and only if they lie on the same line."</em> (This is the example straight from your notes!)'},
+
+/* ---------- PART D — Name that property (6) ---------- */
+{p:"D", partName:"Name that property", t:"mc",
+ q:'In a proof, the line <strong>"m∠2 = m∠2"</strong> is justified by the…',
+ c:["Reflexive Property","Symmetric Property","Substitution Property","Transitive Property"], a:0,
+ e:'A quantity equal to itself = Reflexive. (Substitution is for SWAPPING equal things — don\u2019t mix them up on the test!)'},
+
+{p:"D", partName:"Name that property", t:"mc",
+ q:'"If a = b and b = 17, then a = 17." Justified by the…',
+ c:["Reflexive Property","Transitive Property","Symmetric Property","Substitution Property"], a:1,
+ e:'Three quantities chained through the middle: equal to the same thing → equal to each other. That\u2019s Transitive.'},
+
+{p:"D", partName:"Name that property", t:"mc",
+ q:'"If AB = CD, then CD = AB." Justified by the…',
+ c:["Reflexive Property","Symmetric Property","Transitive Property","Addition Property"], a:1,
+ e:'Same fact, read backwards = Symmetric.'},
+
+{p:"D", partName:"Name that property", t:"mc",
+ q:'"Since RS = PS, you may replace RS with PS anywhere in the proof." Justified by the…',
+ c:["Substitution Property","Reflexive Property","Multiplication Property","Definition of congruence"], a:0,
+ e:'Trading one equal quantity for another anywhere = Substitution ("identical twins").'},
+
+{p:"D", partName:"Name that property", t:"mc",
+ q:'Going from "3x = 6 − ½x" to "3½x = 6" uses the…',
+ c:["Addition Property of Equality","Multiplication Property of Equality","Subtraction Property of Equality","Angle Addition Postulate"], a:0,
+ e:'You added ½x to BOTH sides: −½x + ½x = 0 on the right, 3x + ½x = 3½x on the left. Balance kept!'},
+
+{p:"D", partName:"Name that property", t:"mc",
+ q:'Going from "m∠A = m∠B" to "½·m∠A = ½·m∠B" uses the…',
+ c:["Addition Property","Subtraction Property","Multiplication Property","Reflexive Property"], a:2,
+ e:'Both sides multiplied by ½ (same as dividing by 2). Halves of equal things are equal.'},
+
+/* ---------- PART E — Numbers round (5) ---------- */
+{p:"E", partName:"Numbers round", t:"mc",
+ q:'B is between A and C. AB = 8 and BC = 12. Find <strong>AC</strong>.',
+ c:["20","4","96","24"], a:0,
+ e:'Segment Addition: AB + BC = AC → 8 + 12 = 20.'},
+
+{p:"E", partName:"Numbers round", t:"mc",
+ q:'B is between A and C. AC = 30 and AB = 12. Find <strong>BC</strong>.',
+ c:["18","42","15","8"], a:0,
+ e:'Whole minus piece: BC = AC − AB = 30 − 12 = 18.'},
+
+{p:"E", partName:"Numbers round", t:"mc",
+ q:'M is the midpoint of AB. AM = 4x and MB = 24. Find <strong>x</strong>.',
+ c:["6","4","24","12"], a:0,
+ e:'Midpoint → the halves are equal: 4x = 24 → x = 6. (Check: AM = 24 = MB ✓)'},
+
+{p:"E", partName:"Numbers round", t:"mc",
+ q:'Ray OT bisects ∠AOB and m∠AOB = 74°. Find <strong>m∠AOT</strong>.',
+ c:["37°","74°","148°","47°"], a:0,
+ e:'Angle Bisector Theorem: each half = ½ of the whole → 74 ÷ 2 = 37°.'},
+
+{p:"E", partName:"Numbers round", t:"mc",
+ q:'m∠1 + m∠2 = m∠AOC. If m∠1 = 35° and m∠AOC = 90°, find <strong>m∠2</strong>.',
+ c:["55°","125°","35°","65°"], a:0,
+ e:'Angle Addition in reverse: m∠2 = 90° − 35° = 55°.'},
+
+/* ---------- PART F — Proof mechanics (6) ---------- */
+{p:"F", partName:"Proof mechanics", t:"mc",
+ q:'In a two-column proof, what <strong>always</strong> goes on the first line?',
+ c:["The Given","The statement you must prove","A definition","A theorem"], a:0,
+ e:'Givens are your free clues — line 1. The thing you must prove is your LAST line, never the first.'},
+
+{p:"F", partName:"Proof mechanics", t:"mc",
+ q:'In a proof with S between R and T, the statement <strong>"RS + ST = RT"</strong> is justified by the…',
+ c:["Segment Addition Postulate","Angle Addition Postulate","Reflexive Property","Midpoint Theorem"], a:0,
+ e:'Pieces of a segment add to the whole → Segment Addition Postulate.'},
+
+{p:"F", partName:"Proof mechanics", t:"mc",
+ q:'"If K is the midpoint of FJ, then FK = ½ FJ." The reason is the…',
+ c:["Midpoint Theorem","Definition of angle bisector","Segment Addition Postulate","Subtraction Property"], a:0,
+ e:'Midpoint Theorem: the midpoint splits the segment into halves of the whole (straight from your notes\u2019 quick-fire list!).'},
+
+{p:"F", partName:"Proof mechanics", t:"mc",
+ q:'In the proof "Given m∠AOC = m∠BOD, prove m∠1 = m∠3": after writing m∠AOC = m∠1 + m∠2 and m∠BOD = m∠2 + m∠3, the next step <strong>m∠1 + m∠2 = m∠2 + m∠3</strong> is justified by…',
+ c:["Substitution Property","Reflexive Property","Addition Property","Segment Addition Postulate"], a:0,
+ e:'Since m∠AOC = m∠BOD, swap one side in for the other: Substitution. (Angle Addition is what got you the +m∠2 pieces in the first place.)'},
+
+{p:"F", partName:"Proof mechanics", t:"mc",
+ q:'In the proof "Given m∠1 = m∠3, prove m∠WOY = m∠ZOX", the line <strong>m∠2 = m∠2</strong> is justified by…',
+ c:["Reflexive Property","Symmetric Property","Given","Substitution Property"], a:0,
+ e:'"Of course it equals itself" → Reflexive Property. It earns you the right to add m∠2 to both sides next.'},
+
+{p:"F", partName:"Proof mechanics", t:"w",
+ q:'<strong>Given:</strong> SV bisects ∠RST, RV bisects ∠SRT, and m∠RST = m∠SRT. <strong>Prove:</strong> m∠1 = m∠2.<br>The 5 steps are: ① given info · ② m∠1 = ½m∠RST and m∠2 = ½m∠SRT · ③ m∠RST = m∠SRT · ④ ½m∠RST = ½m∠SRT · ⑤ m∠1 = m∠2.<br>Write the <strong>reason</strong> for each of the 5 steps.',
+ model:'① <b>Given</b> · ② <b>Angle Bisector Theorem</b> (a bisector makes each half = ½ of the whole) · ③ <b>Given</b> · ④ <b>Multiplication Property of Equality</b> (multiplied both sides by ½) · ⑤ <b>Substitution Property</b> (swap the halves in for the ½-angle expressions).<br>That\u2019s your notes\u2019 proof from page 9, start to finish.'}
+];
+
+/* ================= STATE ================= */
+const S = {
+  idx: 0, mode: "study", graded: false,
+  answers: BANK.map(() => ({ sel: null, text: "", self: null })),
+  timer: { running: false, left: 45 * 60, id: null }
+};
+const $ = id => document.getElementById(id);
+const TOTAL = BANK.length;
+
+/* ================= RENDER ================= */
+function render() {
+  const q = BANK[S.idx], a = S.answers[S.idx];
+  $("partChip").textContent = "PART " + q.p + " · " + q.partName.toUpperCase();
+  $("qnum").textContent = "Question " + (S.idx + 1) + " of " + TOTAL;
+  $("typeChip").textContent = q.t === "mc" ? "multiple choice" : "written · self-graded";
+  $("qtext").innerHTML = q.q;
+
+  const choices = $("choices"), wbox = $("writtenBox"), ex = $("explain");
+  choices.innerHTML = "";
+  if (q.t === "mc") {
+    wbox.style.display = "none";
+    const reveal = S.graded || (S.mode === "study" && a.sel !== null);
+    q.c.forEach((txt, i) => {
+      const b = document.createElement("button");
+      b.className = "choice";
+      b.innerHTML = '<span class="ltr">' + "ABCDE"[i] + '</span><span>' + txt + '</span>';
+      if (reveal) {
+        b.disabled = true;
+        if (i === q.a) b.classList.add("correct");
+        if (i === a.sel && i !== q.a) b.classList.add("wrong");
+      } else if (i === a.sel) {
+        b.classList.add("sel");
+      }
+      b.addEventListener("click", () => pick(i));
+      choices.appendChild(b);
+    });
+    if (reveal) { ex.classList.add("show"); $("explainText").innerHTML = q.e; }
+    else ex.classList.remove("show");
+  } else {
+    wbox.style.display = "block";
+    ex.classList.remove("show");
+    const ta = $("wtext");
+    ta.value = a.text;
+    ta.disabled = false;
+    $("modelBox").classList.remove("show");
+    if (S.graded) $("modelBox").classList.add("show");
+    $("modelText").innerHTML = q.model;
+    const sg = $("selfGrade");
+    sg.style.display = "flex";
+    $("sgYes").className = "sg yes" + (a.self === 1 ? " yes-on" : "");
+    $("sgNo").className = "sg no" + (a.self === 0 ? " no-on" : "");
+  }
+
+  $("prevBtn").disabled = S.idx === 0;
+  $("nextBtn").disabled = S.idx === TOTAL - 1;
+  updateProgress();
+}
+
+function pick(i) {
+  const q = BANK[S.idx], a = S.answers[S.idx];
+  if (S.graded) return;
+  if (S.mode === "study" && a.sel !== null) return; // locked after first pick in study mode
+  a.sel = i;
+  render();
+}
+
+function updateProgress() {
+  const answered = S.answers.filter((a, i) => BANK[i].t === "mc" ? a.sel !== null : (a.text.trim() !== "" || a.self !== null)).length;
+  $("progfill").style.width = (answered / TOTAL * 100) + "%";
+  const dots = $("dots");
+  dots.innerHTML = "";
+  for (let i = 0; i < TOTAL; i++) {
+    const d = document.createElement("button");
+    d.className = "dot";
+    d.textContent = i + 1;
+    const a = S.answers[i], q = BANK[i];
+    const isAns = q.t === "mc" ? a.sel !== null : (a.text.trim() !== "" || a.self !== null);
+    if (isAns) d.classList.add("ans");
+    if (S.graded) {
+      const ok = q.t === "mc" ? a.sel === q.a : a.self === 1;
+      d.classList.add(ok ? "good" : "bad");
+    }
+    if (i === S.idx) d.classList.add("cur");
+    d.addEventListener("click", () => { S.idx = i; render(); scrollTop(); });
+    dots.appendChild(d);
+  }
+}
+
+function scrollTop() { $("qcard").scrollIntoView({ behavior: "smooth", block: "start" }); }
+
+/* ================= NAV ================= */
+$("prevBtn").addEventListener("click", () => { if (S.idx > 0) { S.idx--; render(); scrollTop(); } });
+$("nextBtn").addEventListener("click", () => { if (S.idx < TOTAL - 1) { S.idx++; render(); scrollTop(); } });
+
+/* ================= WRITTEN HANDLERS ================= */
+$("wtext").addEventListener("input", e => { S.answers[S.idx].text = e.target.value; updateProgress(); });
+$("revealModel").addEventListener("click", () => $("modelBox").classList.add("show"));
+$("sgYes").addEventListener("click", () => { S.answers[S.idx].self = 1; render(); });
+$("sgNo").addEventListener("click", () => { S.answers[S.idx].self = 0; render(); });
+
+/* ================= MODE TOGGLE ================= */
+$("modeBtn").addEventListener("click", () => {
+  S.mode = S.mode === "study" ? "exam" : "study";
+  $("modeBtn").textContent = S.mode === "study" ? "🧠 Study mode: ON" : "🎯 Exam mode: ON (no instant feedback)";
+  $("modeBtn").classList.toggle("active", true);
+  render();
+});
+
+/* ================= TIMER ================= */
+function fmt(s) { const m = Math.floor(s / 60), r = s % 60; return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0"); }
+$("timer").textContent = fmt(S.timer.left);
+$("timerBtn").addEventListener("click", () => {
+  const T = S.timer;
+  if (T.running) {
+    clearInterval(T.id); T.running = false; $("timerBtn").textContent = "⏱ Resume timer";
+  } else {
+    T.running = true; $("timerBtn").textContent = "⏸ Pause timer";
+    T.id = setInterval(() => {
+      if (!T.running) return;
+      T.left = Math.max(0, T.left - 1);
+      $("timer").textContent = fmt(T.left);
+      $("timer").classList.toggle("low", T.left <= 300);
+      if (T.left === 0) {
+        clearInterval(T.id); T.running = false;
+        $("timerBtn").textContent = "⏱ Timer done"; $("timerBtn").disabled = true;
+        $("timeBanner").classList.add("show");
+      }
+    }, 1000);
+  }
+});
+
+/* ================= GRADING ================= */
+function mcStats() {
+  let corr = 0, wrong = [], unanswered = [];
+  BANK.forEach((q, i) => {
+    if (q.t !== "mc") return;
+    const a = S.answers[i];
+    if (a.sel === null) { unanswered.push(i); }
+    else if (a.sel === q.a) corr++;
+    else wrong.push(i);
+  });
+  return { corr, wrong, unanswered };
+}
+function writtenStats() {
+  const list = [];
+  BANK.forEach((q, i) => { if (q.t === "w") list.push(i); });
+  return list;
+}
+
+$("gradeBtn").addEventListener("click", () => {
+  S.graded = true;
+  if (S.timer.running) { S.timer.running = false; clearInterval(S.timer.id); $("timerBtn").textContent = "⏸ paused"; $("timerBtn").disabled = true; }
+  render();
+  showResults();
+});
+
+function selfScore() { let c = 0; S.answers.forEach((a, i) => { if (BANK[i].t === "w" && a.self === 1) c++; }); return c; }
+function selfUnset() { let n = 0; S.answers.forEach((a, i) => { if (BANK[i].t === "w" && a.self === null) n++; }); return n; }
+
+function showResults() {
+  const st = mcStats();
+  const wl = writtenStats();
+  const sc = selfScore();
+  const tot = st.corr + sc;
+  const pct = Math.round(tot / TOTAL * 100);
+  const badge = pct >= 90 ? "🔥 Locked in for Thursday." : pct >= 75 ? "💪 Solid — review the misses and you\u2019re golden." : pct >= 60 ? "📖 Getting there — re-read the sections you missed." : "🌱 Two days left — re-read the guide and run this again. Plenty of time!";
+
+  // part breakdown
+  const parts = {};
+  BANK.forEach((q, i) => {
+    parts[q.p] = parts[q.p] || { name: q.partName, corr: 0, tot: 0 };
+    if (q.t === "mc") { parts[q.p].tot++; if (S.answers[i].sel === q.a) parts[q.p].corr++; }
+  });
+  let rows = "";
+  ["A", "B", "C", "D", "E", "F"].forEach(p => {
+    if (!parts[p]) return;
+    rows += "<tr><td><b>Part " + p + "</b> — " + parts[p].name + "</td><td>" + parts[p].corr + " / " + parts[p].tot + " MC</td></tr>";
+  });
+
+  // written self-grade cards
+  let wcards = "";
+  wl.forEach(i => {
+    const q = BANK[i], a = S.answers[i];
+    wcards += '<div class="miss"><div class="mq">✍️ Q' + (i + 1) + ': ' + q.q + '</div>' +
+      '<div class="mma"><b>Your answer:</b> ' + (a.text.trim() ? escapeHtml(a.text) : "<i>(blank)</i>") + '</div>' +
+      '<div class="mme"><b>Model answer:</b><br>' + q.model + '</div>' +
+      '<div class="wbtns"></div></div>';
+  });
+
+  // missed list (MC)
+  let missed = "";
+  st.wrong.concat(st.unanswered).sort((x, y) => x - y).forEach(i => {
+    const q = BANK[i], a = S.answers[i];
+    const your = a.sel === null ? "<i>not answered</i>" : q.c[a.sel];
+    missed += '<div class="miss"><div class="mq">Q' + (i + 1) + ': ' + q.q + '</div>' +
+      '<div class="mma">Your answer: ' + your + ' &nbsp;·&nbsp; Correct: <b>' + q.c[q.a] + '</b></div>' +
+      '<div class="mme">' + q.e + '</div></div>';
+  });
+  wl.forEach(i => {
+    if (S.answers[i].self === 0) {
+      const q = BANK[i];
+      missed += '<div class="miss"><div class="mq">Q' + (i + 1) + ' (written): ' + q.q + '</div>' +
+        '<div class="mme"><b>Model answer:</b><br>' + q.model + '</div></div>';
+    }
+  });
+
+  $("results").innerHTML =
+    '<div class="scorehero"><div class="small" style="color:#cfc7b4">MC auto-score: <b>' + st.corr + ' / ' + (TOTAL - wl.length) + '</b> &nbsp;·&nbsp; Written (self): <b>' + sc + ' / ' + wl.length + '</b>' + (selfUnset() ? ' &nbsp;·&nbsp; <span style="color:#ffd9a8">' + selfUnset() + ' written still ungraded</span>' : '') + '</div>' +
+    '<div class="pct">' + tot + ' / ' + TOTAL + '</div>' +
+    '<div class="sub">' + pct + '%' + (selfUnset() ? ' (before written self-grades)' : '') + '</div>' +
+    '<div class="badge">' + badge + '</div></div>' +
+    '<table class="break"><tr><th>Score by part</th><th>Result</th></tr>' + rows + '</table>' +
+    (wcards ? '<h3 style="color:#1c2b4a">✍️ Written answers — grade yourself honestly (model answers below each)</h3>' + wcards : '') +
+    '<h3 style="color:#1c2b4a">❌ Missed questions — read these twice</h3>' +
+    (missed || '<div class="note">Nothing missed on the MC! 🎉 (Written self-grades above if any.)</div>') +
+    '<div class="rbtns">' +
+    '<button class="tbtn" id="retryMissed" style="padding:10px 16px">🔁 Retry the ones I missed</button>' +
+    '<button class="tbtn" id="retryAll" style="padding:10px 16px">🔄 Start completely over</button>' +
+    '</div>' +
+    '<div class="note" style="margin-top:18px">Tip: for every MC you missed, say the fix out loud in one sentence ("I mixed up inverse and contrapositive because…"). Saying it beats re-reading it.</div>';
+
+  $("results").classList.add("show");
+  // attach retry handlers
+  const rm = $("retryMissed"), ra = $("retryAll");
+  if (rm) rm.addEventListener("click", retryMissed);
+  if (ra) ra.addEventListener("click", retryAll);
+  // self-grade buttons inside result cards (rebuild for live score update)
+  const cards = $("results").querySelectorAll(".miss .wbtns");
+  wl.forEach((i, k) => {
+    const holder = cards[k];
+    if (!holder) return;
+    holder.innerHTML = '<button class="sg yes' + (S.answers[i].self === 1 ? " yes-on" : "") + '" data-i="' + i + '" data-v="1">✓ got it right</button>' +
+      '<button class="sg no' + (S.answers[i].self === 0 ? " no-on" : "") + '" data-i="' + i + '" data-v="0">✗ missed it</button>';
+  });
+  $("results").querySelectorAll(".wbtns .sg").forEach(b => b.addEventListener("click", () => {
+    S.answers[+b.dataset.i].self = +b.dataset.v;
+    showResults(); // re-render live
+    $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function retryMissed() {
+  let first = -1;
+  BANK.forEach((q, i) => {
+    const a = S.answers[i];
+    const missed = q.t === "mc" ? (a.sel !== q.a) : (a.self !== 1);
+    if (missed) {
+      a.sel = null; a.text = ""; a.self = null;
+      if (first === -1) first = i;
+    }
+  });
+  if (first === -1) { alert("Nothing to retry — you got everything! 🎉"); return; }
+  S.graded = false; S.idx = first;
+  $("results").classList.remove("show"); $("results").innerHTML = "";
+  $("timerBtn").disabled = false;
+  render(); scrollTop();
+}
+
+function retryAll() {
+  S.answers = BANK.map(() => ({ sel: null, text: "", self: null }));
+  S.graded = false; S.idx = 0;
+  S.timer.left = 45 * 60; S.timer.running = false;
+  if (S.timer.id) clearInterval(S.timer.id);
+  $("timer").textContent = fmt(S.timer.left);
+  $("timer").classList.remove("low");
+  $("timerBtn").textContent = "⏱ Start timer"; $("timerBtn").disabled = false;
+  $("timeBanner").classList.remove("show");
+  $("results").classList.remove("show"); $("results").innerHTML = "";
+  render(); scrollTop();
+}
+
+/* ================= BOOT ================= */
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometry Ch. 2 — Flashcards</title>
+<style>
+  :root{
+    --paper:#f7f3ea; --card:#fffdf8; --ink:#23272e; --ink-soft:#5b6270;
+    --navy:#1c2b4a; --orange:#e07b39; --teal:#2f8f83; --line:#e6dfd0; --chip:#f0e9da;
+    --shadow:0 1px 2px rgba(35,39,46,.05),0 8px 24px rgba(35,39,46,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh;
+    font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background-image:radial-gradient(rgba(28,43,74,.05) 1px, transparent 1.2px);background-size:26px 26px;
+    display:flex;flex-direction:column;align-items:center;padding:26px 18px 60px}
+  h1{font-size:24px;color:var(--navy);margin:0 0 4px;letter-spacing:-.3px}
+  .sub{color:var(--ink-soft);font-size:14px;margin-bottom:20px}
+  .counter{font-weight:800;color:var(--navy);font-size:15px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:5px 16px;margin-bottom:16px}
+  /* flip card */
+  .scene{width:min(620px,92vw);height:340px;perspective:1400px;margin-bottom:18px}
+  .flipper{position:relative;width:100%;height:100%;transition:transform .45s cubic-bezier(.2,.7,.3,1);transform-style:preserve-3d;cursor:pointer}
+  .scene.flipped .flipper{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:20px;padding:26px 28px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+    border:1.5px solid var(--line);background:var(--card)}
+  .face .tag{position:absolute;top:14px;left:18px;background:var(--chip);color:var(--navy);font-size:11.5px;
+    font-weight:800;letter-spacing:.8px;border-radius:99px;padding:3px 11px;text-transform:uppercase}
+  .face .hint{position:absolute;bottom:12px;right:16px;font-size:12px;color:var(--ink-soft)}
+  .face.front .term{font-size:27px;font-weight:800;color:var(--navy);line-height:1.35}
+  .face.front{background:linear-gradient(180deg,#fffdf8,#f6f1e6)}
+  .face.back{transform:rotateY(180deg);background:linear-gradient(180deg,#eef7f5,#e7f3f0);border-color:#bfe0da}
+  .face.back .answer{font-size:19px;line-height:1.55}
+  .face.back .answer .mono{font-family:ui-monospace,Consolas,Menlo,monospace;background:#fff;border-radius:6px;padding:0 5px}
+  /* controls */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 20px;font-weight:800;
+    color:var(--navy);cursor:pointer;font-size:15px}
+  .btn:hover{border-color:var(--navy)}
+  .btn.main{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .btn.shuffle{color:var(--orange);border-color:#ecc9a8}
+  .keyhint{margin-top:18px;font-size:12.5px;color:var(--ink-soft)}
+  kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:#fff;padding:0 5px;font-size:12px;font-weight:700}
+</style>
+</head>
+<body>
+  <h1>🃏 Chapter 2 Flashcards</h1>
+  <div class="sub">Tap the card (or press <kbd>Space</kbd>) to flip · arrows to move · shuffle when you're bored.</div>
+  <div class="counter" id="counter">Card 1 / 32</div>
+
+  <div class="scene" id="scene">
+    <div class="flipper" id="flipper">
+      <div class="face front">
+        <span class="tag" id="tagFront">term</span>
+        <div class="term" id="frontText">…</div>
+        <span class="hint">tap to flip ↔</span>
+      </div>
+      <div class="face back">
+        <span class="tag" id="tagBack">answer</span>
+        <div class="answer" id="backText">…</div>
+        <span class="hint">tap to flip ↔</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prevBtn">← Prev</button>
+    <button class="btn main" id="flipBtn">↻ Flip</button>
+    <button class="btn" id="nextBtn">Next →</button>
+    <button class="btn shuffle" id="shuffleBtn">🔀 Shuffle</button>
+  </div>
+  <div class="keyhint">Pro tip: answer OUT LOUD before flipping. Weird, but it sticks 2× better. 🗣️</div>
+
+<script>
+"use strict";
+const CARDS = [
+  {t:"Conditional statement", a:"A promise: <b>if p, then q</b> (p → q). One setup, one payoff."},
+  {t:"Hypothesis", a:"The <b>IF part</b> (called p). The setup."},
+  {t:"Conclusion", a:"The <b>THEN part</b> (called q). The payoff."},
+  {t:"'p implies q' · 'p only if q' · 'q if p'", a:"All four (with 'if p then q') mean the <b>same promise</b>: p → q."},
+  {t:"The 'only if' trap", a:"After <b>'only if'</b> comes the <b>CONCLUSION</b>. \"x = 5 only if x² = 25\" → hypothesis is x = 5."},
+  {t:"Converse", a:"<b>Swap</b> the halves: q → p. \"If it rains then wet\" → \"If wet then it rains\". (May be false!)"},
+  {t:"Inverse", a:"<b>Not on both halves</b> (no swap): ¬p → ¬q."},
+  {t:"Contrapositive", a:"<b>Swap + not both</b>: ¬q → ¬p. Always has the same truth as the original ⭐"},
+  {t:"Truth buddies", a:"<b>Conditional ⭐ Contrapositive</b> (same truth) · <b>Converse ⭐ Inverse</b> (same truth)."},
+  {t:"Negation", a:"The exact opposite: add <b>\"not\"</b>. \"I am happy\" → \"I am not happy\". Nothing fancier!"},
+  {t:"Double-not rule", a:"Two NOTs cancel: negating \"not raining\" gives \"<b>raining</b>\"."},
+  {t:"Biconditional", a:"<b>p if and only if q</b> (p ↔ q, \"iff\"). A two-way door 🚪↔️"},
+  {t:"When is 'iff' allowed?", a:"Only when the <b>conditional AND its converse are both true</b>."},
+  {t:"Collinear biconditional", a:"3 points are <b>collinear iff</b> they lie on the same line."},
+  {t:"Betweenness biconditional", a:"B is <b>between</b> A and C <b>iff</b> AB + BC = AC."},
+  {t:"Counterexample", a:"One example where <b>p is true but q is false</b> → disproves the statement. One is enough! 🦢"},
+  {t:"Reflexive Property", a:"<span class='mono'>a = a</span> — a thing equals itself (the \"m∠2 = m∠2\" line in proofs)."},
+  {t:"Symmetric Property", a:"<span class='mono'>a = b → b = a</span> — same fact, read backwards."},
+  {t:"Transitive Property", a:"<span class='mono'>a = b, b = c → a = c</span> — chain through the middle."},
+  {t:"Substitution Property", a:"If a = b, you can <b>replace a with b</b> (or b with a) anywhere. Identical twins."},
+  {t:"Addition Property", a:"<span class='mono'>a = b → a + c = b + c</span> — same snack on both plates ⚖️"},
+  {t:"Subtraction Property", a:"<span class='mono'>a = b → a − c = b − c</span> — take the same off both sides."},
+  {t:"Multiplication Property", a:"<span class='mono'>a = b → ac = bc</span> — double both pans, still balanced."},
+  {t:"Division Property", a:"<span class='mono'>a = b → a ÷ c = b ÷ c</span> (c ≠ 0)."},
+  {t:"Segment Addition Postulate", a:"If B is between A and C: <b>AB + BC = AC</b>. Pieces add to the whole."},
+  {t:"Angle Addition Postulate", a:"Ray inside the angle: <b>m∠1 + m∠2 = m∠big</b>. Pizza slices add up 🍕"},
+  {t:"Definition of midpoint", a:"M is the midpoint of AB → <b>AM ≅ MB</b> and <b>AM = MB</b>."},
+  {t:"Midpoint Theorem", a:"M midpoint of AB → <b>AM = MB = ½ AB</b>."},
+  {t:"Angle Bisector Theorem", a:"Ray OT bisects ∠AOB → <b>m∠AOT = m∠TOB = ½ m∠AOB</b>."},
+  {t:"Definition of angle bisector", a:"If a ray bisects an angle → the two new angles are <b>equal</b>."},
+  {t:"Two-column proof", a:"<b>Statements | Reasons</b>. First line = <b>Given</b>, last line = <b>what you prove</b>. Every line needs a reason."},
+  {t:"≅ vs =", a:"<span class='mono'>≅</span> is for <b>segments</b> (same size); <span class='mono'>=</span> is for <b>numbers/measures</b>. Do math with numbers only."}
+];
+
+let order = CARDS.map((_, i) => i);
+let pos = 0, flipped = false;
+const $ = id => document.getElementById(id);
+
+function show() {
+  const c = CARDS[order[pos]];
+  $("frontText").innerHTML = c.t;
+  $("backText").innerHTML = c.a;
+  $("counter").textContent = "Card " + (pos + 1) + " / " + CARDS.length;
+  $("tagFront").textContent = "term";
+  $("tagBack").textContent = "answer";
+  flipped = false;
+  $("scene").classList.remove("flipped");
+}
+function flip() { flipped = !flipped; $("scene").classList.toggle("flipped", flipped); }
+function next() { pos = (pos + 1) % order.length; show(); }
+function prev() { pos = (pos - 1 + order.length) % order.length; show(); }
+function shuffle() {
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  pos = 0; show();
+}
+
+$("flipper").addEventListener("click", flip);
+$("flipBtn").addEventListener("click", flip);
+$("nextBtn").addEventListener("click", next);
+$("prevBtn").addEventListener("click", prev);
+$("shuffleBtn").addEventListener("click", shuffle);
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") { e.preventDefault(); flip(); }
+  else if (e.code === "ArrowRight") next();
+  else if (e.code === "ArrowLeft") prev();
+});
+show();
+</script>
+</body>
+</html>
