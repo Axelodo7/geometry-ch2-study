@@ -1135,8 +1135,8 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
 (function () {
   "use strict";
   var KEY_STORE = "gch2_gemini_key";
-  var MODEL_STORE = "gch2_gemini_model";
-  var MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-2.5-flash"];
+  var MODEL_STORE = "gch2_gemini_model_v2";
+  var MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.8-flash", "gemini-3.7-flash"];
   var API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
 
   var panel = document.getElementById("qaPanel");
@@ -1222,6 +1222,13 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
     });
   }
 
+  function addRetryChip(q) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "qa-chip"; b.textContent = "🔁 Try again"; b.title = q;
+    b.addEventListener("click", function () { b.remove(); send(q); });
+    chipsEl.appendChild(b);
+  }
+
   function renderChat() {
     clearMsgs();
     if (!history.length) {
@@ -1295,43 +1302,75 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
   function friendlyError(status, body) {
     var msg = "";
     try { msg = (body && body.error && body.error.message) || ""; } catch (e) {}
+    var detail = msg ? " — Google said: “" + esc(String(msg).slice(0, 160)) + "”" : "";
     if (status === 400 || status === 401 || status === 403) {
-      if (/api key not valid|api_key_invalid|invalid/i.test(msg)) {
-        return "That API key doesn't work — double-check it (or make a new one at <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>), then tap 🔑 to update it.";
+      if (/api key|api_key|credential|unauthenticated|permission denied|referer/i.test(msg)) {
+        return "That API key doesn't work here" + detail + ". Double-check it (or make a new one at <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>), then tap 🔑 to update it. If the key has website (referrer) restrictions, allow this site or use an unrestricted key.";
       }
-      return "Google rejected the request: " + esc(msg || ("HTTP " + status)) + " — tap 🔑 to update your key.";
+      return "Google rejected the request" + detail + " — tap 🔑 to update your key.";
     }
-    if (status === 429) return "Rate limit hit for this key. Wait a minute (free-tier limits are per-minute and per-day) and try again.";
-    if (status >= 500) return "Google's servers hiccupped (HTTP " + status + ") — try again in a few seconds.";
-    return "Something went wrong: " + esc(msg || ("HTTP " + status));
+    if (status === 429) return "Rate limit hit for this key" + detail + ". Free-tier limits are per-minute and per-day — wait a minute and try again.";
+    if (status >= 500) return "Google's servers hiccupped (HTTP " + status + ")" + detail + ". This is usually temporary — I already tried several Gemini models; give it a few seconds and hit 🔁 Try again.";
+    return "Something went wrong" + detail + " (HTTP " + status + ").";
   }
 
+  function classify(status, msg) {
+    if (status === 404) return "model";
+    if (status === 429) return "rate";
+    if (status === 400 || status === 401 || status === 403) {
+      if (/api key|api_key|credential|unauthenticated|permission denied|referer/i.test(msg)) return "key";
+      if (/not found|not exist|no longer|not available|unsupported|not supported|invalid model|unknown model/i.test(msg)) return "model";
+      return "other";
+    }
+    if (status >= 500) return "server";
+    return "other";
+  }
+
+  // Tries every model name until one answers. Walks past wrong/retired/overloaded
+  // models; stops instantly only for key problems. Reports the most useful error.
   function callGemini(contents, system) {
     var key = getKey();
     if (!key) { var e0 = new Error("no-key"); e0.needKey = true; return Promise.reject(e0); }
     var tried = (getModel() ? [getModel()] : []).concat(MODELS.filter(function (m) { return m !== getModel(); }));
-    var last = null;
-    function attempt(i) {
-      if (i >= tried.length) {
-        var e = new Error("all-models-failed"); e.allModelsFailed = true; e.status = last ? last.status : 404; e.body = last ? last.body : {};
-        return Promise.reject(e);
-      }
-      var m = tried[i];
+    var seen = [];
+    function fetchModel(m, dropTemp) {
+      var cfg = { maxOutputTokens: 8192 };
+      if (!dropTemp) cfg.temperature = 0.45;
       return fetch(API_BASE + m + ":generateContent", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
         body: JSON.stringify({
           contents: contents,
           systemInstruction: { parts: [{ text: system }] },
-          generationConfig: { temperature: 0.45, maxOutputTokens: 2048 }
+          generationConfig: cfg
         })
       }).then(function (r) {
         return safeJson(r).then(function (body) {
-          if (r.status === 404) { last = { status: 404, body: body }; return attempt(i + 1); } // wrong model name -> next
-          if (!r.ok) { var e = new Error("http-" + r.status); e.status = r.status; e.body = body; throw e; }
-          setModel(m);
-          return body;
+          var msg = "";
+          try { msg = (body && body.error && body.error.message) || ""; } catch (e) {}
+          if (r.ok) return { ok: true, body: body, model: m };
+          if (!dropTemp && r.status === 400 && /temperature/i.test(msg)) return fetchModel(m, true);
+          return { ok: false, status: r.status, body: body, kind: classify(r.status, msg), model: m };
         });
+      });
+    }
+    function attempt(i) {
+      if (i >= tried.length) {
+        var pick = null, order = ["key", "rate", "server", "model", "other"];
+        for (var oi = 0; oi < order.length && !pick; oi++) {
+          for (var ei = 0; ei < seen.length; ei++) { if (seen[ei].kind === order[oi]) { pick = seen[ei]; break; } }
+        }
+        pick = pick || seen[seen.length - 1] || { status: 0, body: {}, kind: "other" };
+        var e = new Error("all-failed");
+        e.status = pick.status; e.body = pick.body; e.kind = pick.kind;
+        if (pick.kind === "model") e.allModelsFailed = true;
+        return Promise.reject(e);
+      }
+      return fetchModel(tried[i], false).then(function (res) {
+        if (res.ok) { setModel(res.model); return res.body; }
+        seen.push(res);
+        if (res.kind === "key") { var ek = new Error("http-" + res.status); ek.status = res.status; ek.body = res.body; throw ek; }
+        return attempt(i + 1);
       }, function () { var e = new Error("network"); e.network = true; throw e; });
     }
     return attempt(0);
@@ -1353,6 +1392,7 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
     if (busy) return;
     text = String(text || "").trim();
     if (!text) return;
+    chipsEl.innerHTML = "";
     if (!getKey()) { renderSetup("Save your Gemini API key first — then I can answer questions 👇"); return; }
     bubble("qa-user", esc(text));
     input.value = ""; fitInput();
@@ -1363,8 +1403,10 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
       var answer = extractAnswer(body);
       if (!answer) {
         var why = "";
-        try { why = (body.promptFeedback && body.promptFeedback.blockReason) || ""; } catch (e) {}
-        answer = "*(No answer came back" + (why ? " — blocked: " + why : "") + ". Try rephrasing the question.)*";
+        try { why = (body.candidates && body.candidates[0] && body.candidates[0].finishReason) || ""; } catch (e) {}
+        if (!why) { try { why = (body.promptFeedback && body.promptFeedback.blockReason) || ""; } catch (e) {} }
+        if (why === "MAX_TOKENS") answer = "*(The answer ran out of room before it started — ask a shorter question.)*";
+        else answer = "*(No answer came back" + (why ? " — " + why : "") + ". Try rephrasing the question.)*";
       }
       think.classList.remove("qa-think");
       think.innerHTML = md(answer);
@@ -1373,10 +1415,11 @@ Also written: m∠1 = ½ m∠RST  ·  m∠2 = ½ m∠SRT
       if (history.length > 24) history = history.slice(history.length - 24);
     }).catch(function (err) {
       think.remove();
-      if (err && err.needKey) renderSetup("Save your Gemini API key first — then I can answer questions 👇");
-      else if (err && err.network) bubble("qa-err", "Couldn't reach Google — check your internet and try again.");
-      else if (err && err.allModelsFailed) bubble("qa-err", "All Gemini model names were rejected — tap 🔑 and make sure the key is from <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>.");
+      if (err && err.needKey) { renderSetup("Save your Gemini API key first — then I can answer questions 👇"); return; }
+      if (err && err.network) bubble("qa-err", "Couldn't reach Google — check your internet and try again.");
+      else if (err && err.allModelsFailed) bubble("qa-err", "None of the Gemini model names worked with this key — tap 🔑 and make sure the key is from <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/apikey</a>.");
       else bubble("qa-err", friendlyError((err && err.status) || 0, err && err.body));
+      addRetryChip(text);
     }).then(function () {
       busy = false; sendBtn.disabled = false;
     });
